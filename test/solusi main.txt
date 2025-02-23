@@ -1,9 +1,10 @@
 Kamu berhasil menemukan solusi puzzle :)
+
 ABBCC
 AABCD
 EEEDD
 EEFFF
 GGGFF
 
-Waktu pencarian: 1025 ms
+Waktu pencarian: 161 ms
 Banyak kasus yang ditinjau: 1257

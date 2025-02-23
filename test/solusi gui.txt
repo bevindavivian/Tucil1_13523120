@@ -1,0 +1,10 @@
+Kamu berhasil menemukan solusi puzzle menggunakan Bev Blast :)
+
+ABBCC
+AABCD
+EEEDD
+EEFFF
+GGGFF
+
+Waktu pencarian:  198 ms
+Banyak kasus yang ditinjau: 1257
