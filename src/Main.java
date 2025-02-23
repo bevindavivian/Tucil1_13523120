@@ -1,16 +1,18 @@
 import java.io.*;
 import java.util.*;
+import java.util.List;
 import java.nio.file.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 
 public class Main {
-    private static final String RESET = "\u001B[0m"; // reset warna
+    private static final String RESET = "\u001B[0m"; //reset warna
     private static Map<Character, String> blockColors = new HashMap<>();
     private static long count_bev1nd4 = 0;
 
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-
-        try {
+        try (Scanner scanner = new Scanner(System.in)) {
             System.out.println("Masukkan nama file .txt yang ingin diuji: ");
             String fileName = scanner.nextLine();
             if (!fileName.endsWith(".txt")) {
@@ -181,15 +183,11 @@ public class Main {
         board.tambahBlock(currentChar, pieceMatrix);
     }
 
-    static boolean solvePuzzle(Board_Bev board) {
-        return solveRecursive(board, 0);
-    }
-
     private static boolean solveRecursive(Board_Bev board, int blockIndex) {
         count_bev1nd4++;
 
         if (blockIndex == board.blocks.size()) {
-            return true;  
+            return isBoardFull(board);
         }
 
         Board_Bev.Block currentBlock = board.blocks.get(blockIndex);
@@ -210,6 +208,39 @@ public class Main {
             }
         }
         return false;
+    }
+
+    private static boolean isBoardFull(Board_Bev board) {
+        for (int i = 0; i < board.baris; i++) {
+            for (int j = 0; j < board.kolom; j++) {
+                if (board.board[i][j] == '.') {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    static boolean solvePuzzle(Board_Bev board) {
+        int totalCells = board.baris * board.kolom;
+        int totalBlockCells = 0;
+        for (Board_Bev.Block block : board.blocks) {
+            for (int i = 0; i < block.bentuk.length; i++) {
+                for (int j = 0; j < block.bentuk[i].length; j++) {
+                    if (block.bentuk[i][j] != false) {
+                        totalBlockCells++;
+                    }
+                }
+            }
+        }
+        
+        if (totalBlockCells != totalCells) {
+            System.out.println("\nTidak ada solusi: Ukuran total block (" + totalBlockCells + 
+                             ") tidak sesuai dengan ukuran papan (" + totalCells + ")");
+            return false;
+        }
+        
+        return solveRecursive(board, 0);
     }
 
     private static List<Board_Bev.Block> getAllRotations(Board_Bev.Block block) {
@@ -240,28 +271,121 @@ public class Main {
     }
 
     private static void simpanSolusi(Board_Bev board, String baseName, long lamaExe) {
-        try {
-            String filePath = "test/" + baseName + ".txt";
+    try {
+        String txtPath = "test/" + baseName + ".txt";
+        simpanSolusiTxt(board, txtPath, lamaExe);
+        String imgPath = "test/" + baseName + ".png";
+        simpanSolusiImage(board, imgPath, lamaExe);
+        
+        System.out.println("\nYay! Solusi telah berhasil disimpan ke: ");
+        System.out.println("1. " + txtPath + " (text)");
+        System.out.println("2. " + imgPath + " (image)");
     
-            FileWriter writer = new FileWriter(filePath);
-            writer.write("Kamu berhasil menemukan solusi puzzle :)\n");
-    
-            for (int i = 0; i < board.baris; i++) {
-                for (int j = 0; j < board.kolom; j++) {
-                    writer.write(board.board[i][j]);
-                }
-                writer.write("\n");
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+    private static void simpanSolusiTxt(Board_Bev board, String filePath, long lamaExe) throws IOException {
+        FileWriter writer = new FileWriter(filePath);
+        writer.write("Kamu berhasil menemukan solusi puzzle :)\n\n");
+
+        for (int i = 0; i < board.baris; i++) {
+            for (int j = 0; j < board.kolom; j++) {
+                writer.write(board.board[i][j]);
             }
-    
-            writer.write("\nWaktu pencarian: " + lamaExe + " ms\n");
-            writer.write("Banyak kasus yang ditinjau: " + count_bev1nd4);
-            writer.close();
-    
-            System.out.println("Yay! Solusi telah berhasil disimpan ke: " + filePath);
-    
-        } catch (IOException e) {
-            e.printStackTrace();
+            writer.write("\n");
         }
+
+        writer.write("\nWaktu pencarian: " + lamaExe + " ms\n");
+        writer.write("Banyak kasus yang ditinjau: " + count_bev1nd4);
+        writer.close();
+    }
+
+    private static void simpanSolusiImage(Board_Bev board, String filePath, long lamaExe) throws IOException {
+        final int CELL_SIZE = 45;
+        final int PADDING = 50;
+        final int CIRCLE_PADDING = 2;
+        int width = board.kolom * CELL_SIZE + 2 * PADDING;
+        int height = board.baris * CELL_SIZE + 2 * PADDING + 80; 
+        
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+        
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        
+        g2d.setColor(new Color(245, 247, 250));
+        g2d.fillRect(0, 0, width, height);
+        
+        g2d.setColor(new Color(41, 128, 185));
+        g2d.setFont(new Font("Arial", Font.BOLD, 20));
+        g2d.drawString("Bev Blast :)", PADDING, 35);
+        
+        g2d.setColor(new Color(52, 73, 94, 50));
+        g2d.fillRoundRect(PADDING - 8, PADDING + 20, 
+                        board.kolom * CELL_SIZE + 26, 
+                        board.baris * CELL_SIZE + 26, 15, 15);
+        g2d.setColor(new Color(52, 73, 94));
+        g2d.fillRoundRect(PADDING - 10, PADDING + 18, 
+                        board.kolom * CELL_SIZE + 20, 
+                        board.baris * CELL_SIZE + 20, 15, 15);
+        
+        Color[] blockColors = new Color[26];
+        blockColors[0] = new Color(231, 76, 60);   
+        blockColors[1] = new Color(41, 128, 185);  
+        blockColors[2] = new Color(39, 174, 96);  
+        blockColors[3] = new Color(241, 196, 15); 
+        blockColors[4] = new Color(142, 68, 173);  
+        blockColors[5] = new Color(230, 126, 34);  
+        blockColors[6] = new Color(52, 152, 219);  
+        blockColors[7] = new Color(46, 204, 113);  
+        blockColors[8] = new Color(155, 89, 182);  
+        blockColors[9] = new Color(26, 188, 156); 
+        
+        for (int i = 10; i < 26; i++) {
+            float hue = (i * (360f / 16f)) / 360f;
+            blockColors[i] = Color.getHSBColor(hue, 0.8f, 0.9f);
+        }
+        
+        int circleSize = CELL_SIZE - CIRCLE_PADDING * 2;
+        for (int i = 0; i < board.baris; i++) {
+            for (int j = 0; j < board.kolom; j++) {
+                int x = PADDING + j * CELL_SIZE + CIRCLE_PADDING;
+                int y = PADDING + i * CELL_SIZE + CIRCLE_PADDING + 20;
+                
+                char c = board.board[i][j];
+                if (c != '.') {
+                    g2d.setColor(new Color(0, 0, 0, 30));
+                    g2d.fillOval(x + 2, y + 2, circleSize, circleSize);
+                    g2d.setColor(blockColors[c - 'A']);
+                    g2d.fillOval(x, y, circleSize, circleSize);
+                    
+                    g2d.setColor(new Color(255, 255, 255, 60));
+                    g2d.fillOval(x + 3, y + 3, circleSize/2, circleSize/2);
+                    
+                    g2d.setColor(Color.WHITE);
+                    g2d.setFont(new Font("Arial", Font.BOLD, 16));
+                    FontMetrics fm = g2d.getFontMetrics();
+                    String str = String.valueOf(c);
+                    int textX = x + (circleSize - fm.stringWidth(str)) / 2;
+                    int textY = y + (circleSize + fm.getAscent() - fm.getDescent()) / 2;
+                    g2d.drawString(str, textX, textY);
+                } else {
+                    g2d.setColor(new Color(60, 60, 60));
+                    g2d.fillOval(x, y, circleSize, circleSize);
+                }
+            }
+        }
+        
+        int statsY = height - PADDING/2;
+        g2d.setColor(new Color(52, 73, 94));
+        g2d.setFont(new Font("Arial", Font.PLAIN, 14));
+        g2d.drawString("Waktu pencarian: " + lamaExe + " ms", PADDING, statsY);
+        g2d.drawString("Banyak kasus yang ditinjau: " + count_bev1nd4, PADDING, statsY + 20);
+        
+        g2d.dispose();
+        ImageIO.write(image, "PNG", new File(filePath));
     }
 
     private static void warnaBlocks() {
