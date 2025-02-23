@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.*;
+import java.nio.file.*;
 
 public class Main {
     private static final String RESET = "\u001B[0m"; // reset warna
@@ -24,18 +25,54 @@ public class Main {
                 return;
             }
 
+            List<String> allLines = Files.readAllLines(file.toPath());
+            
+            if (allLines.size() < 2) {
+                System.out.println("Input puzzle tidak valid :( \nFile terlalu pendek, silakan perbaiki file terlebih dahulu");
+                return;
+            }
+
+            String[] dimensions = allLines.get(0).trim().split("\\s+");
+            if (dimensions.length != 3) {
+                System.out.println("Input puzzle tidak valid :( \nFormat dimensi tidak sesuai, silakan perbaiki file terlebih dahulu");
+                return;
+            }
+
+            int N, M, P;
+            try {
+                N = Integer.parseInt(dimensions[0]);
+                M = Integer.parseInt(dimensions[1]);
+                P = Integer.parseInt(dimensions[2]);
+
+                if (P > 26) {
+                    System.out.println("Input puzzle tidak valid :( \nJumlah blok puzzle tidak boleh lebih dari 26, silakan perbaiki file terlebih dahulu");
+                    return;
+                }
+
+                if (P <= 0) {
+                    System.out.println("Input puzzle tidak valid :( \nJumlah blok puzzle harus positif, silakan perbaiki file terlebih dahulu");
+                    return;
+                }
+
+            } catch (NumberFormatException e) {
+                System.out.println("Input puzzle tidak valid :( \nFormat dimensi harus berupa angka, silakan perbaiki file terlebih dahulu");
+                return;
+            }
+
+            String puzzleType = allLines.get(1).trim();
+            if (!puzzleType.equals("DEFAULT")) {
+                System.out.println("Input puzzle tidak valid :( \nProgam ini hanya dapat mencari solusi untuk puzzle DEFAULT, silakan perbaiki file terlebih dahulu");
+                return;
+            }
+
             System.out.println("Berhasil membaca file: " + filePath);
             Scanner fileScanner = new Scanner(file);
-            String[] dimensions = fileScanner.nextLine().split(" ");
-            int N = Integer.parseInt(dimensions[0]);
-            int M = Integer.parseInt(dimensions[1]);
-            int P = Integer.parseInt(dimensions[2]);
+            fileScanner.nextLine(); 
+            fileScanner.nextLine(); 
 
             System.out.println("\nBerikut ini informasi persoalan dari file yang diinput :)");
             System.out.println("Dimensi board: " + N + "x" + M);
             System.out.println("Jumlah blocks: " + P);
-
-            String puzzleType = fileScanner.nextLine();
             System.out.println("Jenis puzzle: " + puzzleType);
 
             Board_Bev papan = new Board_Bev(N, M);
@@ -44,6 +81,8 @@ public class Main {
 
             List<String> shapeLines = new ArrayList<>();
             char currentChar = '\0';
+            Set<Character> uniqueBlocks = new HashSet<>();
+            int blockCount = 0;
 
             while (fileScanner.hasNextLine()) {
                 String line = fileScanner.nextLine().trim();
@@ -58,14 +97,32 @@ public class Main {
                 if (firstNonSpace == ' ') continue;
                 if (currentChar == '\0' || firstNonSpace == currentChar) {
                     shapeLines.add(line);
+                    if (currentChar == '\0') {
+                        currentChar = firstNonSpace;
+                        uniqueBlocks.add(firstNonSpace);
+                    }
                 } else {
+                    blockCount++;
                     simpanBlock(papan, shapeLines, currentChar);
                     shapeLines.clear();
                     shapeLines.add(line);
+                    currentChar = firstNonSpace;
+                    uniqueBlocks.add(firstNonSpace);
                 }
-                currentChar = firstNonSpace;
             }
-            simpanBlock(papan, shapeLines, currentChar);
+            if (!shapeLines.isEmpty()) {
+                blockCount++;
+                simpanBlock(papan, shapeLines, currentChar);
+            }
+
+            if (blockCount != P) {
+                System.out.println("Input puzzle tidak valid :( \nJumlah blok (" + blockCount + ") tidak sesuai dengan P (" + P + "), silakan perbaiki file terlebih dahulu");
+                return;
+            }
+            if (uniqueBlocks.size() != P) {
+                System.out.println("Input puzzle tidak valid :(\nAda blok yang duplikat, setiap blok harus unik, silakan perbaiki file terlebih dahulu");
+                return;
+            }
 
             long awal = System.currentTimeMillis();
             boolean solved = solvePuzzle(papan);
@@ -100,7 +157,7 @@ public class Main {
         }
     }
 
-    private static void simpanBlock(Board_Bev board, List<String> shapeLines, char currentChar) {
+    static void simpanBlock(Board_Bev board, List<String> shapeLines, char currentChar) {
         int baris = shapeLines.size();
         int kolom = shapeLines.stream().mapToInt(String::length).max().orElse(0);
         char[][] pieceMatrix = new char[baris][kolom];
@@ -124,7 +181,7 @@ public class Main {
         board.tambahBlock(currentChar, pieceMatrix);
     }
 
-    private static boolean solvePuzzle(Board_Bev board) {
+    static boolean solvePuzzle(Board_Bev board) {
         return solveRecursive(board, 0);
     }
 
